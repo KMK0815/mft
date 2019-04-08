@@ -1,0 +1,18 @@
+<table class="legende">
+	<tr>
+		<td class="col1"></td>
+		<td class="col2"><span class="typcn typcn-media-record-outline"
+			style="float: left;"></span> <span class="typcn typcn-lightbulb">{{channel + 1}}</span>
+			<span class="typcn typcn-adjust-brightness" style="float: right;"></span></td>
+		<td class="col3"><span class="typcn typcn-power"></span></td>
+	</tr>
+</table>
+<table class="slider">
+	<tr>
+		<td class="col1"><span style="">{{dimmValue|dimm}} %</span></td>
+		<td class="col2"><input type="range" [ngModel] = "dimmValue|dimm" (ngModelChange)="setDimm($event)" [disabled]="disabled||dimmValue == 255"/></td>
+		<!-- oninput="wsSend(this,'1')" [disabled]="msg?.lsm.sl[this.tab][i] == 255" -->
+		<td class="col3"><input type="checkbox" [id]="'cb' + channel" [ngModel]="getCBVal()" (change)="toggleActive()" [disabled]="disabled"/> <label
+						[for]="'cb' + channel"></label></td>
+	</tr>
+</table>

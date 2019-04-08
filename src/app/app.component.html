@@ -1,0 +1,305 @@
+
+
+<body>
+  <header>
+    <div class="logout">
+      <label *ngIf="wsConected; else loginLabel" title="Logout"><i class="fas fa-sign-out-alt" aria-hidden="true"
+          (click)="disconnect()"></i></label>
+      <ng-template #loginLabel> <label title="Login"><i class="fas fa-sign-in-alt" aria-hidden="true" (click)="connect()"></i></label>
+      </ng-template>
+    </div>
+    <div class="temperature">
+      <i class="fas fa-history"></i> {{msg?.tic / 3600000 | number:'1.1-1'}}
+      h <span class="typcn typcn-thermometer status"></span>
+      {{msg?.tmp}}°C
+      <i class="typcn typcn-spanner" aria-hidden="true"></i> Dil {{getDilBinary()}}
+    </div>
+  </header>
+  <div class="tab">
+    <button class="tablinks" [ngClass]="{active: tab==-1}" type="button" [disabled]="!wsConected" (click)="tab=-1;showDetails=false">
+      <br /> <span class="fas fa-sliders-h" aria-hidden="true"></span>
+    </button>
+    <button *ngFor="let text of tabTexts; let i = index" class="tablinks" [ngClass]="{active: tab==i}" type="button"
+      [disabled]="!msg?.sw[i]" (click)="changeTab(i)">
+      {{text}} <br /> <span class="fas fa-tasks" aria-hidden="true"></span>
+    </button>
+  </div>
+  <main id="content">
+    <div *ngIf="tab>=0; else directSlider">
+      <ul class="slidercontainer" id="lightSceneSliderContainer" style="position: relative;">
+        <li>
+          <table class="slider">
+            <tr>
+              <td class="col1 edit-prog-icon"><span class="typcn typcn-weather-sunny" (click)="set_curret_config_tab(0)"></span></td>
+              <td class="col1 edit-prog-icon"><span (click)="set_curret_config_tab(2)">
+                  <i class="fas fa-running"></i>
+                </span></td>
+              <td class="col1 edit-prog-icon"><span class="fas fa-sliders-h" (click)="set_curret_config_tab(1)"></span></td>
+              <td class="col2">Lichtszene {{tab + 1}}
+                {{getOverrunTimestemp()}}
+              </td>
+              <td class="col3"><input type="checkbox" [id]="'lsm'+tab" [disabled]="!wsConected" (change)="j['btn_' + (tab + 1)] = msg?.btn[tab] ? '1' : '0';sendObjToLSM6()"
+                  [(ngModel)]="msg?.btn[tab]" /><label [for]="'lsm'+tab"></label>
+              </td>
+            </tr>
+          </table>
+        </li>
+        <li id="block-lightScene1" class="no-block-Scene"></li>
+        <li style="padding: 0px;">
+          <table class="slider">
+            <tr id="edit-prog1" *ngIf="showDetails">
+              <td class="edit-prog" colspan="3">
+                <table class="edit-prog">
+                  <ng-container *ngIf="current_config_tab === 0">
+                    <tr>
+                      <td style="text-align: right;">Sensorkanalwahl:<input type="checkbox" [id]="'si'+tab"
+                          (ngModelChange)="changeSI()" [(ngModel)]="customSI" /><label [for]="'si'+tab"></label>
+                      <td colspan="2">
+
+                        <div *ngIf="customSI;else elseBlock">
+
+                          <ng-select class="button" [items]="senonsorOptions" [addTag]="true" [(ngModel)]="sensorSelection"
+                            (change)="setSensorChange()" [disabled]="!customSI" ng-change="update()">
+                          </ng-select>
+
+                        </div>
+                        <ng-template #elseBlock>
+
+                          <ng-select class="button" [items]="senonsorOptions" [addTag]="true" [(ngModel)]="sensorSelection"
+                            (change)="setSensorChange()" [disabled]="!customSI" ng-change="update()">
+                          </ng-select>
+
+                        </ng-template>
+                      </td>
+
+                    </tr>
+                    <tr>
+                      <td></td>
+                      <td><label><span class="typcn typcn-weather-sunny" aria-hidden="true"></span> Sensorwert</label></td>
+                      <td>{{msg?.sens.ls[sensorSelection - 1]}} Lux</td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Tageslichtregelung:<input type="checkbox" [id]="'sp'+tab"
+                          [ngModel]="msg?.lsm.sp[tab] > 0" (ngModelChange)="msg?.lsm.sp[tab] = $event ? 1 : 0" />
+                        <label [for]="'sp'+tab"></label>
+                      </td>
+                      <td><label><i class="fas fa-bullseye" aria-hidden="true"></i> Sollwert</label></td>
+                      <td><input type="number" id="sp" min="0" max="20000" value="" class="small-text-input"
+                          [(ngModel)]="msg?.lsm.sp[tab]" />
+                        Lux
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Dämmerungsschalter LBM Kanal {{sensorSelection}}:
+                        <input type="checkbox" [id]="'mode + 0'+tab" (click)="change_current_mode(7)" [(ngModel)]="current_mode[7]" /><label
+                          [for]="'mode + 0'+tab"></label>
+                      </td>
+                      <td style="text-align: left;"><label><i class="fas fa-adjust" aria-hidden="true"></i>
+                          Schwellwert:</label></td>
+                      <td><input type="number" id="lt" min="0" max="20000" value="" class="small-text-input"
+                          [(ngModel)]="msg?.sens.lt[tab]" />
+                        Lux
+                      </td>
+
+                    </tr>
+                    <tr colspan="3">
+                      <td style="text-align: right;">Externer Dämmerungsschalter Eingang {{sensorSelection}}:
+                      </td>
+                      <td colspan="2">
+                        <ng-select class="button" [items]="mode_state" [addTag]="true" bindValue="label" [(ngModel)]="current_mode_state[tab]"
+                          (click)="change_current_mode(6)">
+                        </ng-select>
+                      </td>
+                    </tr>
+
+                  </ng-container>
+                  <ng-container *ngIf="current_config_tab === 1">
+                    <tr>
+                      <td style="text-align: right;">Offset:<input type="checkbox" [id]="'oa'+tab" [(ngModel)]="msg?.lsm.oa[tab]"
+                          [disabled]="'true'" /><label [for]="'oa'+tab"></label></td>
+                      <td><label><i class="fas fa-arrow-up"></i> Verschiebung</label></td>
+                      <td style="text-align: left;">
+                        <input type="range" [(ngModel)]="offSetvalue" (change)="setOffset($event)" />
+                      </td>
+                      <td>
+                        {{msg.lsm.caof[tab]}}
+                      </td>
+                      <!-- oninput="wsSend(this,'1')" [disabled]="msg?.lsm.sl[this.tab][i] == 255" -->
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Poti LBM Kanal {{tab+1}}:<input type="checkbox" [id]="'mode + 4'+tab"
+                          (click)="change_current_mode(2)" [(ngModel)]="current_mode[2]" /><label [for]="'mode + 4'+tab"></label></td>
+                      <td style="text-align: left;"> <label><i class="fas fa-spinner" aria-hidden="true"></i>
+                          Potentiometer</label></td>
+                      <td>
+                        <input type="range" [id]="'of'+tab" (ngModelChange)="changeOffset()" [(ngModel)]="customPot"
+                          [disabled]="'true'" /><label [for]="'of'+tab"></label>
+                      </td>
+                      <td>
+                        {{customPot}} %
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Min:<input type="checkbox" [id]="'min'+tab" (ngModelChange)="changeMin()"
+                          [(ngModel)]="customMinValue" /><label [for]="'min'+tab"></label></td>
+                      <td><label><i class="typcn typcn-arrow-down" aria-hidden="true"></i> Min</label></td>
+                      <td>
+                        <div *ngIf="msg?.lsm.min[this.tab] !== 96 || customMinValue;else elseBlock">
+                          <input type="range" [(ngModel)]="minValue" (ngModelChange)="setMinValue($event)" [disabled]="'false'" />
+                        </div>
+                        <ng-template #elseBlock>
+                          <input type="range" [(ngModel)]="minValue" (ngModelChange)="setMinValue($event)" [disabled]="'true'" />
+
+                        </ng-template>
+                      </td>
+                      <td>
+                        {{getPercentage(minValue)}}%
+                      </td>
+                      <!-- oninput="wsSend(this,'1')" [disabled]="msg?.lsm.sl[this.tab][i] == 255" -->
+                    </tr>
+                    <tr>
+                      <td style="text-align: right;">Max<input type="checkbox" [id]="'max'+tab" (ngModelChange)="changeMax()"
+                          [(ngModel)]="customMaxValue" /><label [for]="'max'+tab"></label></td>
+                      <td><label><i class="typcn typcn-arrow-up" aria-hidden="true"></i> Max:</label></td>
+                      <td>
+                        <div *ngIf="msg?.lsm.max[this.tab] !== 254|| customMaxValue;else elseBlock">
+                          <input type="range" [(ngModel)]="maxValue" (ngModelChange)="setMaxValue($event)" [disabled]="'false'" />
+                        </div>
+                        <ng-template #elseBlock>
+                          <input type="range" [(ngModel)]="maxValue" (ngModelChange)="setMaxValue($event)" [disabled]="'true'" />
+
+                        </ng-template>
+                      </td>
+                      <td>
+                        {{getPercentage(maxValue)}}%
+
+                      </td>
+                      <!-- oninput="wsSend(this,'1')" [disabled]="msg?.lsm.sl[this.tab][i] == 255" -->
+                    </tr>
+                  </ng-container>
+                  <ng-container *ngIf="current_config_tab === 2">
+                    <tr>
+                      <td style="text-align: right;">Treppenlichtfunktion:
+                        <input type="checkbox" [id]="'ot'+tab" [ngModel]="msg?.sens.ot[tab] > 0" (ngModelChange)="this.msg?.sens.ot[tab] = $event ? 60000 : 0" />
+                        <label [for]="'ot'+tab"></label>
+                      </td>
+                      <td><label><span class="typcn typcn-stopwatch"></span>
+                          Nachlaufzeit:</label>
+                      </td>
+                      <td><input style="text-align: right;" type="number" id="ot" min="0" max="60000" value="" class="small-text-input"
+                          [ngModel]="msg?.sens.ot[tab] / 60000" (ngModelChange)="this.msg?.sens.ot[tab] = ($event * 60000)" />
+                        Min.
+                      </td>
+                    </tr>
+                    <tr>
+
+                      <td colspan="2" style="text-align: right;">Tast- / Schaltsignal an Eingang {{tab+1}}: <input type="checkbox"
+                          [id]="'mode + 2'+tab" (click)="change_current_mode(3)" [ngModel]="get_inverted_state(3)"
+                          ng-true-value="false" ng-false-value="true" /><label [for]="'mode + 2'+tab"></label></td>
+
+                    </tr>
+                    <tr>
+                      <td colspan="1" style="text-align: right;vertical-align:top;"><b> Triggerquellen:</b></td>
+
+                      <td colspan="1" style="text-align: right;">Bewegungsmelder LBM Kanal {{sensorSelection}}:
+                        <input type="checkbox" [id]="'mode + 3'+tab" (click)="change_current_mode(4)" [ngModel]="get_inverted_state(4)"
+                          ng-true-value="false" ng-false-value="true" /><label [for]="'mode + 3'+tab"></label>
+                      </td>
+
+                    </tr>
+
+                    <tr>
+
+                      <td style="text-align: right;">Globaler Trigger:</td>
+                      <td colspan="2" style="text-align: right;">
+                        <span>
+                          <ng-select class="button" [items]="global_state_lm" [addTag]="true" bindValue="label"
+                            [(ngModel)]="current_global_state[tab]" (click)="change_current_mode(1)">
+                          </ng-select>
+                        </span>
+                      </td>
+
+                    </tr>
+                  </ng-container>
+                </table>
+              </td>
+
+            </tr>
+
+          </table>
+        </li>
+        <li *ngFor="let text of tabTexts; let i = index" class="slider-row">
+          <app-dimm-slider [channel]="i" [(dimmValue)]="msg?.lsm.sl[this.tab][i]"></app-dimm-slider>
+        </li>
+      </ul>
+    </div>
+    <ng-template #directSlider>
+      <ul class="slidercontainer" id="lightSceneSliderContainer" style="position: relative;">
+        <li>
+          <table class="slider">
+            <tr>
+              <td class="col2">Licht dimmen</td>
+            </tr>
+          </table>
+        </li>
+        <li *ngFor="let text of tabTexts; let i = index" class="slider-row">
+          <app-dimm-slider [channel]="i" [sceneSlider]="false" [disabled]="msg?.sw[i]" [(dimmValue)]="msg?.lsm.dali[i]"
+            (change)="j['dali_' + (i + 1)] = msg?.lsm.dali[i];sendObjToLSM6()"></app-dimm-slider>
+        </li>
+      </ul>
+    </ng-template>
+    <ul class="button-container" *ngIf="showConnectionData">
+      <li><label class="button1"><i class="fas fa-link" aria-hidden="true"></i> IP-Adresse: </label></li>
+      <li>
+        <ng-select class="button" [items]="ipItems" [addTag]="true" bindValue="label" [(ngModel)]="wsUrl"> </ng-select>
+      </li>
+      <li>
+        <label class="button" title="Login" (click)="connect()">
+          <!-- <i class="fa fa-sign-in" aria-hidden="true"></i> {{wsState}} -->
+          {{wsState}}
+        </label>
+      </li>
+    </ul>
+    <ul class="button-container">
+      <li><label class="button"><span class="typcn typcn-upload"></span> Hochladen <input type="file" name="file"
+            accept="application/json" (change)="uploadJsonFile($event)" style="display: none"> </label></li>
+      <li><label class="button" (click)="downloadJsonFile()" id="backup"><span class="typcn typcn-download"></span>
+          Herunterladen</label>
+      </li>
+      <li>
+        <label *ngIf="wsConected; else connectLabel" class="button" (click)="j=msg;sendObjToLSM6()">
+          <ng-container *ngIf="transmitting; else elseTemplate">
+            <i class="fas fa-spinner" aria-hidden="true"></i> Übertragung
+          </ng-container>
+          <ng-template #elseTemplate>
+            <i class="fas fa-save" aria-hidden="true"></i> Speichern
+          </ng-template>
+
+        </label>
+
+        <ng-template #connectLabel>
+          <label class="button" (click)="showConnectionData=!showConnectionData">
+            <ng-container *ngIf="showConnectionData; else elseTemplate">
+              <i class="fas fa-ban"></i> Abbrechen
+            </ng-container>
+            <ng-template #elseTemplate>
+              <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
+              Verbindung
+            </ng-template>
+
+          </label>
+
+        </ng-template>
+      </li>
+    </ul>
+  </main>
+  <footer>
+    <ul class="button-container">
+      <li><a href="http://www.protronic-gmbh.de" target="_blank" class="logolink"><img src="./assets/logo_neg.png"
+            class="logo" /></a></li>
+      <li><a href="http://www.protronic-gmbh.de/media/k2/attachments/Betriebsanleitung-LSM6-DE.pdf" target="_blank"
+          class="downloadlink"><i class="fas fa-file-pdf" aria-hidden="true"></i>Anleitung (DE)</a></li>
+    </ul>
+  </footer>
+
+</body>
